@@ -1,0 +1,25 @@
+height: 10 
+grid:_num: 20
+grid_size: 20    #单位为毫米
+delay: 1
+
+#cboard
+quaternion_canid: 0x100
+bullet_speed_canid: 0x101
+send_canid: 0xff
+can_interface: "can0"
+
+#camera
+camera_name: "hikrobot"
+exposure_ms: 25
+gain: 10.0
+vid_pid: "2bdf:0001"
+
+#solver
+R_gimbal2imubody:
+R_camera2gimbal:
+t_camera2gimbal:
+camera_matrix:
+distort_coeffs:
+
+##用来测试获取相机画面和获取imu之间的延迟
