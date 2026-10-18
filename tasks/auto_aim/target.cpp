@@ -187,7 +187,7 @@ void Target::update(const Armor & armor)
 void Target::update_ypda(const Armor & armor, int id)
 {
   //观测jacobi
-  Eigen::MatrixXd H = h_jacobian(ekf_.x, id);
+  //Eigen::MatrixXd H = h_jacobian(ekf_.x, id);  //放到循环里去计算
   // Eigen::VectorXd R_dig{{4e-3, 4e-3, 1, 9e-2}};
   auto center_yaw = std::atan2(armor.xyz_in_world[1], armor.xyz_in_world[0]);
   auto delta_angle = tools::limit_rad(armor.ypr_in_world[0] - center_yaw);
@@ -219,7 +219,29 @@ void Target::update_ypda(const Armor & armor, int id)
   const Eigen::VectorXd & ypr = armor.ypr_in_world;
   Eigen::VectorXd z{{ypd[0], ypd[1], ypd[2], ypr[0]}};  //获得观测量
 
-  ekf_.update(z, H, R, h, z_subtract);
+  Eigen::VectorXd x_prior = ekf_.x; 
+  Eigen::MatrixXd P_prior = ekf_.P;      //先验值
+
+  //Eigen::MatrixXd x_final = x_prior;
+  Eigen::VectorXd x_final = x_prior;
+  Eigen::MatrixXd H_final;
+  Eigen::MatrixXd K_final;
+
+  for(int i = 0 ; i<3 ; i++){
+    Eigen::MatrixXd H_i = h_jacobian(x_final, id);
+    Eigen::VectorXd z_i = h(x_final);
+    //更新K
+    Eigen::MatrixXd S = H_i * P_prior * H_i.transpose() + R;
+    Eigen::MatrixXd K_i = P_prior * H_i.transpose() * S.transpose();
+
+    Eigen::VectorXd innovation = z_subtract(z, z_i) - H_i * (x_final - x_prior);
+    x_final = x_prior + K_i * innovation;
+
+    H_final = H_i;
+    K_final = K_i;
+  }
+
+  ekf_.I_update(x_final,H_final,K_final,R);
 }
 
 Eigen::VectorXd Target::ekf_x() const { return ekf_.x; }
