@@ -90,5 +90,13 @@ Eigen::VectorXd ExtendedKalmanFilter::update(
 
   return x;
 }
-
+Eigen::VectorXd ExtendedKalmanFilter::I_update(
+    const Eigen::VectorXd & x_final , const Eigen::MatrixXd & K_final ,
+    const Eigen::MatrixXd & H_final , const Eigen::MatrixXd & R)
+  {
+    x = x_final;   //使用迭代后的状态
+    P = (I - K_final * H_final) * P * (I - K_final * H_final).transpose() + K_final * R * K_final.transpose();
+                   //迭代后的K和H来更新
+    return x;
+  }
 }  // namespace tools

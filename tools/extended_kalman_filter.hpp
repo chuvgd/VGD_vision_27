@@ -38,6 +38,10 @@ public:
     std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> z_subtract =
       [](const Eigen::VectorXd & a, const Eigen::VectorXd & b) { return a - b; });
 
+  Eigen::VectorXd I_update( //迭代更新
+    const Eigen::VectorXd & x_final , const Eigen::MatrixXd & K_final , const Eigen::MatrixXd & H_final ,
+    const Eigen::MatrixXd & R );
+
   std::map<std::string, double> data;  //卡方检验数据
   std::deque<int> recent_nis_failures{0};
   size_t window_size = 100;
