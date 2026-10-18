@@ -92,11 +92,48 @@ Eigen::VectorXd ExtendedKalmanFilter::update(
 }
 Eigen::VectorXd ExtendedKalmanFilter::I_update(
     const Eigen::VectorXd & x_final , const Eigen::MatrixXd & K_final ,
-    const Eigen::MatrixXd & H_final , const Eigen::MatrixXd & R)
+    const Eigen::MatrixXd & H_final , const Eigen::MatrixXd & R,
+    std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> z_subtract,
+    const Eigen::VectorXd & x_prior,const Eigen::VectorXd & z ,
+    std::function<Eigen::VectorXd(const Eigen::VectorXd &)> h)
   {
-    x = x_final;   //使用迭代后的状态
+    x = x_final;
     P = (I - K_final * H_final) * P * (I - K_final * H_final).transpose() + K_final * R * K_final.transpose();
-                   //迭代后的K和H来更新
-    return x;
+    P = 0.5 * (P + P.transpose());
+
+  /// 卡方检验
+  Eigen::VectorXd residual = z_subtract(z, h(x));
+  // 新增检验
+  Eigen::MatrixXd S = H_final * P * H_final.transpose() + R;
+  double nis = residual.transpose() * S.inverse() * residual;
+  double nees = (x - x_prior).transpose() * P.inverse() * (x - x_prior);
+
+  // 卡方检验阈值（自由度=4，取置信水平95%）
+  constexpr double nis_threshold = 0.711;
+  constexpr double nees_threshold = 0.711;
+
+  if (nis > nis_threshold) nis_count_++, data["nis_fail"] = 1;
+  if (nees > nees_threshold) nees_count_++, data["nees_fail"] = 1;
+  total_count_++;
+  last_nis = nis;
+
+  recent_nis_failures.push_back(nis > nis_threshold ? 1 : 0);
+
+  if (recent_nis_failures.size() > window_size) {
+    recent_nis_failures.pop_front();
+  }
+
+  int recent_failures = std::accumulate(recent_nis_failures.begin(), recent_nis_failures.end(), 0);
+  double recent_rate = static_cast<double>(recent_failures) / recent_nis_failures.size();
+
+  data["residual_yaw"] = residual[0];
+  data["residual_pitch"] = residual[1];
+  data["residual_distance"] = residual[2];
+  data["residual_angle"] = residual[3];
+  data["nis"] = nis;
+  data["nees"] = nees;
+  data["recent_nis_failures"] = recent_rate;
+
+  return x;
   }
 }  // namespace tools

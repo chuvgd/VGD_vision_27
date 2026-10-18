@@ -234,14 +234,14 @@ void Target::update_ypda(const Armor & armor, int id)
     Eigen::MatrixXd S = H_i * P_prior * H_i.transpose() + R;
     Eigen::MatrixXd K_i = P_prior * H_i.transpose() * S.inverse();
 
-    Eigen::VectorXd innovation = z_subtract(z, z_i) - H_i * (x_final - x_prior);
-    x_final = x_prior + K_i * innovation;
+    Eigen::VectorXd innovation = z_subtract(z, z_i) + H_i * (x_final - x_prior);
+    x_final = ekf_.x_add(x_prior,K_i * innovation);
 
     H_final = H_i;
     K_final = K_i;
   }
 
-  ekf_.I_update(x_final,H_final,K_final,R);
+  ekf_.I_update(x_final , K_final , H_final , R , z_subtract , x_prior , z , h);
 }
 
 Eigen::VectorXd Target::ekf_x() const { return ekf_.x; }
