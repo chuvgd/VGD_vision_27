@@ -232,7 +232,7 @@ void Target::update_ypda(const Armor & armor, int id)
     Eigen::VectorXd z_i = h(x_final);
     //更新K
     Eigen::MatrixXd S = H_i * P_prior * H_i.transpose() + R;
-    Eigen::MatrixXd K_i = P_prior * H_i.transpose() * S.transpose();
+    Eigen::MatrixXd K_i = P_prior * H_i.transpose() * S.inverse();
 
     Eigen::VectorXd innovation = z_subtract(z, z_i) - H_i * (x_final - x_prior);
     x_final = x_prior + K_i * innovation;
