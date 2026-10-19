@@ -53,10 +53,10 @@ public:
   std::deque<int> recent_nis_failures{0};
   size_t window_size = 100;
   double last_nis;
-
+  std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> x_add;
+  
 private:
   Eigen::MatrixXd I;
-  std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> x_add;
   int nees_count_ = 0;
   int nis_count_ = 0;
   int total_count_ = 0;
