@@ -217,12 +217,14 @@ void Target::update_ypda(const Armor & armor, int id)
     return c;
   };
 
+  auto h_jacobian_func = [&](const Eigen::VectorXd & x,int id) ->Eigen::MatrixXd {return h_jacobian(x,id);};
+
   const Eigen::VectorXd & ypd = armor.ypd_in_world;
   const Eigen::VectorXd & ypr = armor.ypr_in_world;
   Eigen::VectorXd z{{ypd[0], ypd[1], ypd[2], ypr[0]}};  //获得观测量
 
 
-  ekf_.I_update(z , R , h_jacobian , h ,z_subtract);
+  ekf_.I_update(z , R , id , h_jacobian_func , h ,z_subtract);
 }
 
 Eigen::VectorXd Target::ekf_x() const { return ekf_.x; }

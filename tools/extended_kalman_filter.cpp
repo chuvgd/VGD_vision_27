@@ -91,7 +91,7 @@ Eigen::VectorXd ExtendedKalmanFilter::update(
   return x;
 }
 Eigen::VectorXd ExtendedKalmanFilter::I_update(
-  const Eigen::VectorXd & z,const Eigen::MatrixXd & R,
+  const Eigen::VectorXd & z,const Eigen::MatrixXd & R,int id,
   std::function<Eigen::MatrixXd(const Eigen::VectorXd & x,int id)>h_jacobian,
   std::function<Eigen::VectorXd(const Eigen::VectorXd &)> h,
   std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> z_subtract )
@@ -112,7 +112,7 @@ Eigen::VectorXd ExtendedKalmanFilter::I_update(
     Eigen::MatrixXd K_i = P_prior * H_i.transpose() * S.inverse();
 
     Eigen::VectorXd innovation = z_subtract(z, z_i) + H_i * (x_final - x_prior);
-    x_final = ekf_.x_add(x_prior,K_i * innovation);
+    x_final = x_add(x_prior,K_i * innovation);
 
     H_final = H_i;
     K_final = K_i;

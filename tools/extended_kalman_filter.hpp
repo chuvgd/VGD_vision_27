@@ -7,6 +7,8 @@
 #include <map>
 #include "tools/math_tools.hpp"
 
+
+
 namespace tools
 {
 class ExtendedKalmanFilter
@@ -43,7 +45,7 @@ public:
       [](const Eigen::VectorXd & a, const Eigen::VectorXd & b) { return a - b; });
 
   Eigen::VectorXd I_update(
-    const Eigen::VectorXd & z,const Eigen::MatrixXd & R,
+    const Eigen::VectorXd & z,const Eigen::MatrixXd & R,int id,
     std::function<Eigen::MatrixXd(const Eigen::VectorXd & x,int id)>h_jacobian,
     std::function<Eigen::VectorXd(const Eigen::VectorXd &)> h,
     std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> z_subtract);
@@ -54,7 +56,7 @@ public:
   size_t window_size = 100;
   double last_nis;
   std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> x_add;
-  
+
 private:
   Eigen::MatrixXd I;
   int nees_count_ = 0;
