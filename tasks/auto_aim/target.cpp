@@ -221,29 +221,8 @@ void Target::update_ypda(const Armor & armor, int id)
   const Eigen::VectorXd & ypr = armor.ypr_in_world;
   Eigen::VectorXd z{{ypd[0], ypd[1], ypd[2], ypr[0]}};  //获得观测量
 
-  Eigen::VectorXd x_prior = ekf_.x; 
-  Eigen::MatrixXd P_prior = ekf_.P;      //保存先验值
 
-  Eigen::VectorXd x_final = x_prior;
-  Eigen::MatrixXd H_final;
-  Eigen::MatrixXd K_final;
-
-  for(int i = 0 ; i<3 ; i++){
-    //迭代求解观测雅可比
-    Eigen::MatrixXd H_i = h_jacobian(x_final, id);
-    Eigen::VectorXd z_i = h(x_final);
-    //更新K
-    Eigen::MatrixXd S = H_i * P_prior * H_i.transpose() + R;
-    Eigen::MatrixXd K_i = P_prior * H_i.transpose() * S.inverse();
-
-    Eigen::VectorXd innovation = z_subtract(z, z_i) + H_i * (x_final - x_prior);
-    x_final = ekf_.x_add(x_prior,K_i * innovation);
-
-    H_final = H_i;
-    K_final = K_i;
-  }
-
-  ekf_.I_update(x_final , K_final , H_final , R , z_subtract , x_prior , z , h);
+  ekf_.I_update(z , R , h_jacobian , h ,z_subtract);
 }
 
 Eigen::VectorXd Target::ekf_x() const { return ekf_.x; }

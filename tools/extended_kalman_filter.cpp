@@ -91,15 +91,36 @@ Eigen::VectorXd ExtendedKalmanFilter::update(
   return x;
 }
 Eigen::VectorXd ExtendedKalmanFilter::I_update(
-    const Eigen::VectorXd & x_final , const Eigen::MatrixXd & K_final ,
-    const Eigen::MatrixXd & H_final , const Eigen::MatrixXd & R,
-    std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> z_subtract,
-    const Eigen::VectorXd & x_prior,const Eigen::VectorXd & z ,
-    std::function<Eigen::VectorXd(const Eigen::VectorXd &)> h)
+  const Eigen::VectorXd & z,const Eigen::MatrixXd & R,
+  std::function<Eigen::MatrixXd(const Eigen::VectorXd & x,int id)>h_jacobian,
+  std::function<Eigen::VectorXd(const Eigen::VectorXd &)> h,
+  std::function<Eigen::VectorXd(const Eigen::VectorXd &, const Eigen::VectorXd &)> z_subtract )
   {
+    Eigen::VectorXd x_prior = x; 
+    Eigen::MatrixXd P_prior = P;      //保存先验值
+
+    Eigen::VectorXd x_final = x_prior;
+    Eigen::MatrixXd H_final;
+    Eigen::MatrixXd K_final;
+
+    for(int i = 0 ; i<3 ; i++){
+    //迭代求解观测雅可比
+    Eigen::MatrixXd H_i = h_jacobian(x_final, id);
+    Eigen::VectorXd z_i = h(x_final);
+    //更新K
+    Eigen::MatrixXd S = H_i * P_prior * H_i.transpose() + R;
+    Eigen::MatrixXd K_i = P_prior * H_i.transpose() * S.inverse();
+
+    Eigen::VectorXd innovation = z_subtract(z, z_i) + H_i * (x_final - x_prior);
+    x_final = ekf_.x_add(x_prior,K_i * innovation);
+
+    H_final = H_i;
+    K_final = K_i;
+  }
     x = x_final;
     P = (I - K_final * H_final) * P * (I - K_final * H_final).transpose() + K_final * R * K_final.transpose();
-    P = 0.5 * (P + P.transpose());
+    P = 0.5 * (P + P.transpose()); //对称化
+
 
   /// 卡方检验
   Eigen::VectorXd residual = z_subtract(z, h(x));
