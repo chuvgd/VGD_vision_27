@@ -186,17 +186,19 @@ void Target::update(const Armor & armor)
 
 void Target::update_ypda(const Armor & armor, int id)
 {
-  //观测jacobi
-  //Eigen::MatrixXd H = h_jacobian(ekf_.x, id);  //放到循环里去计算
-  // Eigen::VectorXd R_dig{{4e-3, 4e-3, 1, 9e-2}};
-  auto center_yaw = std::atan2(armor.xyz_in_world[1], armor.xyz_in_world[0]);
-  auto delta_angle = tools::limit_rad(armor.ypr_in_world[0] - center_yaw);
-  Eigen::VectorXd R_dig{
-    {4e-3, 4e-3, log(std::abs(delta_angle) + 1) + 1,
-     log(std::abs(armor.ypd_in_world[2]) + 1) / 200 + 9e-2}};
+  
+  //随距离适应R  直接抄的sp27培训
+  const double center_yaw = std::atan2(armor.xyz_in_world[1], armor.xyz_in_world[0]);
+  const double delta_angle = tools::limit_rad(armor.ypr_in_world[0] - center_yaw);
+  const double distance = armor.ypd_in_world[2];
+  const double distance_sq = distance * distance;
 
-  //测量过程噪声偏差的方差
-  Eigen::MatrixXd R = R_dig.asDiagonal();
+  const double r_cam_yaw = 5e-4;
+  const double r_cam_pitch = 5e-4;
+  const double r_distance = (1e-2 + 5e-3 * distance_sq) * (std::log(std::abs(delta_angle) + 1) + 1);
+  const double r_armor_yaw = 5e-2 + 1e-2 * distance_sq + 2e-1 / distance;
+
+  Eigen::MatrixXd R = Eigen::Vector4d(r_cam_yaw, r_cam_pitch, r_distance, r_armor_yaw).asDiagonal();
 
   // 定义非线性转换函数h: x -> z
   auto h = [&](const Eigen::VectorXd & x) -> Eigen::Vector4d {
@@ -220,14 +222,14 @@ void Target::update_ypda(const Armor & armor, int id)
   Eigen::VectorXd z{{ypd[0], ypd[1], ypd[2], ypr[0]}};  //获得观测量
 
   Eigen::VectorXd x_prior = ekf_.x; 
-  Eigen::MatrixXd P_prior = ekf_.P;      //先验值
+  Eigen::MatrixXd P_prior = ekf_.P;      //保存先验值
 
-  //Eigen::MatrixXd x_final = x_prior;
   Eigen::VectorXd x_final = x_prior;
   Eigen::MatrixXd H_final;
   Eigen::MatrixXd K_final;
 
   for(int i = 0 ; i<3 ; i++){
+    //迭代求解观测雅可比
     Eigen::MatrixXd H_i = h_jacobian(x_final, id);
     Eigen::VectorXd z_i = h(x_final);
     //更新K
